@@ -1,0 +1,34 @@
+from sqlalchemy.orm import Session
+from app.models.task import Task
+from app.schemas.task import TaskCreate, TaskUpdate
+
+def get_tasks(db: Session, owner_id: int):
+    return db.query(Task).filter(Task.owner_id == owner_id).all()
+
+def get_task(db: Session, task_id: int, owner_id: int):
+    return db.query(Task).filter(Task.id == task_id, Task.owner_id == owner_id).first()
+
+def create_task(db: Session, task_data: TaskCreate, owner_id: int):
+    task = Task(**task_data.model_dump(), owner_id=owner_id)
+    db.add(task)
+    db.commit()
+    db.refresh(task)
+    return task
+
+def update_task(db: Session, task_id: int, task_data: TaskUpdate, owner_id: int):
+    task = get_task(db, task_id, owner_id)
+    if not task:
+        return None
+    for key, value in task_data.model_dump(exclude_unset=True).items():
+        setattr(task, key, value)
+    db.commit()
+    db.refresh(task)
+    return task
+
+def delete_task(db: Session, task_id: int, owner_id: int):
+    task = get_task(db, task_id, owner_id)
+    if not task:
+        return False
+    db.delete(task)
+    db.commit()
+    return True
